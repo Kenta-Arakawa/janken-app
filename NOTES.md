@@ -22,7 +22,7 @@
 | Step 5 | 動作確認、コミット | 完了 |
 | Step 6 | GitHub公開(Pages) | 完了 |
 | Step 7 | (発展) 機能追加(勝敗カウント、リセット)、記録の保存(localStorage) | 完了 |
-| Step 8 | (発展) サーバーやDBの追加 | 未着手 |
+| Step 8 | (発展) サーバーやDBの追加 | 進行中(Expressサーバー起動済) |
 
 ## 最終的なファイル構成
 
@@ -346,3 +346,46 @@ body{
 - 「累計をリセット」ボタンと `resetTotalWins()` を追加。変数・画面・保存値の3つを 0 に戻す
 - 記録が消える操作なので、`if (confirm("...")) { ... }` で確認画面を挟んだ。`OK` で `true`、キャンセルで `false` が返る
 - 保存範囲の決定: 累計を保存するのは勝ち数のみ。負け数・あいこ数はリロードで 0 に戻る仕様のままとした
+
+---
+
+## Step 8: サーバーとDBの追加(進行中)
+
+### 方針
+
+- サーバー: Node.js + Express(JavaScriptのまま書ける)
+- DB: SQLite(ファイル1つで動く。学習向き)
+- まずは手元のPC(`localhost`)だけで動かし、公開は動いてから別段階で扱う
+- GitHub Pages は静的サイト専用で、サーバー側のプログラムを動かせない。画面はPagesのまま、サーバーとDBは別の置き場所を用意する想定
+
+### Node.js とは
+
+- ブラウザの外でJavaScriptを動かす実行環境。同じ言語でも、動く場所で使える命令が違う
+  - ブラウザ: `document`、`localStorage` など(画面の操作)
+  - Node.js: ファイルの読み書き、サーバーの起動、DBの操作など
+- `npm` はNode.jsに付いてくるライブラリ管理ツール。Expressはサーバーを簡単に作るためのライブラリ
+
+### やったこと
+
+1. `server` フォルダを作り、`npm init -y` で `package.json`(プロジェクトの設計書)を作成
+   - `npm init -y` は、npmをインストールするのではなく、`package.json` を作るコマンド。`-y` は質問に全部デフォルトで答える指定
+2. `npm install express` で Express を導入(`node_modules` フォルダができ、`package.json` の `dependencies` に追記される)
+3. `server/index.js` で Hello World サーバーを作成
+   ```js
+   const express = require('express');
+   const app = express();
+   app.get('/', (req,res) => { res.send('Hello World!') });
+   app.listen(3000, () => { console.log('Server is running on port 3000') });
+   ```
+4. `node index.js` で起動し、`http://localhost:3000` で表示を確認。止めるのは `Ctrl + C`
+
+### 学んだこと
+
+- `require('express')`: ライブラリを取り込む
+- `app.get('/', (req, res) => { ... })`: GETリクエストが来たときの動きを登録。`req` は依頼の情報、`res` は返事を作る道具
+- `app.listen(3000, ...)`: 3000番ポートで待ち受け開始。ポートは1台のPCの中の窓口の番号
+- GET は「情報をください」、POST は「情報を送ります」の種類のリクエスト(戦績の保存にPOSTを使う予定)
+
+### 注意(コミット前にやること)
+
+- `node_modules` はGitに入れない。`.gitignore` ファイルに `node_modules` と書いて除外する
