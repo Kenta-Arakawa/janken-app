@@ -38,3 +38,15 @@ function judge(user, pc){
         document.getElementById("loseCount").textContent = userLoseCount;
     }
 }
+
+function resetGame() {
+    userWinCount = 0;
+    userLoseCount = 0;
+    userDrawCount = 0;
+    document.getElementById("winCount").textContent = userWinCount;
+    document.getElementById("loseCount").textContent = userLoseCount;
+    document.getElementById("drawCount").textContent = userDrawCount;
+    document.getElementById("user_hand").textContent = "";
+    document.getElementById("pc_hand").textContent = "";
+    document.getElementById("result").textContent = "";
+}
