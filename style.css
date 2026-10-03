@@ -1,0 +1,19 @@
+h1{
+    color: blue;
+    font-size: 24px;
+    padding: 10px 20px;
+}
+
+button{
+    background-color: green;
+    color: white;
+    font-size: 20px;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    margin: 10px 10px;
+}
+
+body{
+    text-align: center;
+}
