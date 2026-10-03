@@ -5,6 +5,8 @@ const pcChoice = choices[Math.floor(Math.random() * choices.length)];
 let userWinCount = 0;
 let userLoseCount = 0;
 let userDrawCount = 0;
+let totalWinCount = Number(localStorage.getItem("userWinCount"));
+document.getElementById("totalWins").textContent = totalWinCount;
 
 function playGame(str){
     console.log(str+"を選んだ！");
@@ -31,6 +33,9 @@ function judge(user, pc){
         document.getElementById("result").textContent = "あなたの勝ち！";
         userWinCount++;
         document.getElementById("winCount").textContent = userWinCount;
+        totalWinCount++;
+        document.getElementById("totalWins").textContent = totalWinCount;
+        localStorage.setItem("userWinCount", totalWinCount);
     } else {
         console.log("あなたの負け！");
         document.getElementById("result").textContent = "あなたの負け！";
@@ -49,4 +54,14 @@ function resetGame() {
     document.getElementById("user_hand").textContent = "";
     document.getElementById("pc_hand").textContent = "";
     document.getElementById("result").textContent = "";
+    console.log("ゲームをリセットしました。");
+}
+
+function resetTotalWins() {
+    if (confirm("本当に総勝利数をリセットしますか？")) {
+        totalWinCount = 0;
+        document.getElementById("totalWins").textContent = totalWinCount;
+        localStorage.setItem("userWinCount", totalWinCount);
+        console.log("総勝利数をリセットしました。");
+    }
 }
