@@ -20,7 +20,8 @@
 | Step 3 | JavaScriptでじゃんけんのロジックを実装 | 完了 |
 | Step 4 | CSSで見た目を整える | 完了 |
 | Step 5 | 動作確認、コミット | 完了 |
-| Step 6 | (発展) GitHub公開、サーバーやDBの追加 | 未着手 |
+| Step 6 | GitHub公開(Pages) | 完了 |
+| Step 7 | (発展) 機能追加、サーバーやDBの追加 | 未着手 |
 
 ## 最終的なファイル構成
 
@@ -228,3 +229,38 @@ body{
 ### 動作確認の結果
 
 - 見た目、表示、あいこ・勝ち・負けの判定ともに問題なし
+
+---
+
+## Step 6: GitHubに公開する
+
+### やったこと
+
+1. 公開前に、コミット履歴のメールアドレスを GitHub の noreply アドレスに書き換えた
+   - `git config user.email "<ID>+<ユーザー名>@users.noreply.github.com"`
+   - `git rebase --root --exec "git commit --amend --reset-author --no-edit"`
+   - 書き換え前の履歴は `backup-before-rewrite` ブランチに退避し、確認後に削除した(本物のメールが残っているため)
+2. GitHub で空のリポジトリ(Public、README等なし)を作成
+3. `git remote add origin <URL>` で送り先を登録
+4. `git push -u origin master` で GitHub に送信
+
+### 学んだこと
+
+- 公開/非公開: リポジトリはいつでも切り替え可。ただし無料プランの GitHub Pages は Public のときだけ使える。一度公開すると、コピーされた分は取り消せない
+- noreply アドレス: GitHub が用意する公開用の代わりのメールアドレス。コミットに記録されるのはこちらで、本物は表に出ない
+- `git rebase`: 過去のコミットを作り直す。公開前だから安全にできる(公開後の書き換えは避ける)
+- `fetch` は GitHub → 手元に取ってくる向き、`push` は手元 → GitHub に送る向き
+- `origin` は送り先に付けるあだ名(慣習)。名前が違うとエラーになる(`git remote rename` で直せる)
+- エラー `'origin' does not appear to be a git repository` は、その名前の送り先が登録されていないという意味。`git remote -v` で確認する
+
+### GitHub Pages で Web 公開
+
+- 公開URL: https://kenta-arakawa.github.io/janken-app/
+- 設定: リポジトリの Settings → Pages → Source を「Deploy from a branch」、Branch を `master` / `/ (root)` にして Save
+- 公開まで1〜2分かかる
+- 以後、`master` に push すると、自動でサイトにも反映される
+
+### 次の候補
+
+- B. 機能追加(連勝数、戦績カウント、「もう一回」ボタンなど)
+- C. サーバーとDB(戦績をサーバーに保存する)
