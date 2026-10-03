@@ -2,6 +2,7 @@ console.log("読み込めた！");
 
 const choices = ["グー", "チョキ", "パー"];
 const pcChoice = choices[Math.floor(Math.random() * choices.length)];
+let userWinCount = 0;
 
 function playGame(str){
     console.log(str+"を選んだ！");
@@ -24,6 +25,8 @@ function judge(user, pc){
     } else if ((user === "グー" && pc === "チョキ") || (user === "チョキ" && pc === "パー") || (user === "パー" && pc === "グー")) {
         console.log("あなたの勝ち！");
         document.getElementById("result").textContent = "あなたの勝ち！";
+        userWinCount++;
+        document.getElementById("winCount").textContent = userWinCount;
     } else {
         console.log("あなたの負け！");
         document.getElementById("result").textContent = "あなたの負け！";
