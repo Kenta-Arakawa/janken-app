@@ -417,3 +417,98 @@ body{
 - CORSは証明書ではない。許可の印は、サーバーの持ち主が自分のサーバーの返事に自由に書ける
 - 悪意ある開発者が悪いサイトを作ること自体は、CORSでは防げない。それは、https の証明書、ブラウザの警告(セーフブラウジング)など、別の仕組みの担当
 - 自分のサーバーで許可を書いても、他人のサーバーのデータは読めない。許可を書けるのは自分のサーバーの返事だけ
+
+---
+
+## 付録: これまで使ったコマンド一覧(自分用の辞書)
+
+### 1. シェルの基本操作(PowerShell)
+
+| コマンド | 意味 | 使った場面 |
+|---|---|---|
+| `cd フォルダ名` | フォルダに移動する | `cd server` でサーバー用フォルダへ移動 |
+| `cd ..` | 1つ上のフォルダに戻る | `server` から `janken-app` へ戻る |
+| `ls` / `dir` | 今いるフォルダの中身を表示する | ファイルがあるか確認 |
+| `Ctrl + C` | 実行中のプログラムを止める | サーバーを止めて起動し直す |
+
+- **今どこにいるかはプロンプトで確認する**(`PS C:\...\janken-app>` の部分)。相対パス `./db` は「今いるフォルダ」基準なので、場所が違うと `Cannot find module` になる
+- PowerShell の `curl` は `Invoke-WebRequest` の別名。本物の curl は `curl.exe` と書く
+
+### 2. Git(バージョン管理)
+
+| コマンド | 意味 | 使った場面 |
+|---|---|---|
+| `git init` | このフォルダを履歴管理の対象にする | 最初のセットアップ |
+| `git config user.name / user.email` | コミットに残る作者情報を設定する | noreplyアドレスの設定 |
+| `git status` | 変更されたファイルを確認する | コミット前の確認 |
+| `git add .` | 変更を保存対象(ステージ)に追加する | コミット前 |
+| `git commit -m "メッセージ"` | 履歴として保存する(セーブポイント) | 機能ごと |
+| `git log --oneline` | コミット履歴を1行ずつ表示する | 履歴の確認 |
+| `git branch` | ブランチの一覧を表示する / 作る / 消す(`-d`) | バックアップブランチの作成、削除 |
+| `git rebase --root --exec "..."` | 過去のコミットを作り直す | 作者メールの書き換え(公開前だけ) |
+| `git remote add origin URL` | 送り先(GitHub)に名前を付けて登録する | 初回のGitHub接続 |
+| `git remote -v` | 登録済みの送り先を表示する | `origin` の確認 |
+| `git remote rename 旧 新` | 送り先の名前を変える | `janken` → `origin` |
+| `git push -u origin master` | GitHubに送る(`-u` で次回から省略可) | 初回push。以降は `git push` |
+
+### 3. npm(パッケージ管理)
+
+| コマンド | 意味 | 使った場面 |
+|---|---|---|
+| `npm --version` | npmのバージョン確認 | 環境確認 |
+| `npm init -y` | `package.json`(設計書)を作る。npm自体のインストールではない | `server` の初期化 |
+| `npm install ライブラリ名` | ライブラリを導入する | `express`、`cors` |
+
+### 4. Node.js(実行環境)
+
+| コマンド | 意味 | 使った場面 |
+|---|---|---|
+| `node --version` | Node.jsのバージョン確認 | 環境確認 |
+| `node ファイル名` | JavaScriptファイルを実行する | `node index.js`(サーバー起動)、`node db.js`(DB作成) |
+| `node -e "コード"` | 1行のコードをその場で実行する | DBの中身の確認 |
+
+- サーバーのコードを変えたら、`Ctrl + C` で止めて `node index.js` で起動し直す
+
+### 5. HTTP通信の確認
+
+| コマンド | 意味 | 使った場面 |
+|---|---|---|
+| `curl.exe -X POST URL -H "..." -d '...'` | POSTリクエストを送る。`-X` はメソッド、`-H` はヘッダー、`-d` は送るデータ | `/games` に戦績を送る |
+
+- PowerShellでは、JSON内の `"` の前に `\` を付ける(`\"`)
+
+### 補足
+
+- 学ぶ順番の目安: シェルの基本 → Git → HTTP → SQL → npm / Node.js
+- 全部覚えなくてよい。よく使う10個程度で、ほとんどの作業が回る
+
+### SQLインジェクションと `?`(プレースホルダ)
+
+- **SQLインジェクション**: 入力された文字が、データではなくSQLの命令として実行されてしまう攻撃
+  - 危険な例: `"... VALUES ('" + user_hand + "')"` と文字をつなげると、`'); DROP TABLE games; --` のような入力でテーブルが消される
+- **対策**: `db.prepare('INSERT ... VALUES (?)').run(値)` のように、命令と値を別々にDBへ渡す
+  - `prepare`: 命令の形だけを先にDBに解釈させる(`?` の場所にはデータが入ると決まる)
+  - `run(値)`: 後から値だけを渡す。どんな文字でも、ただのデータとして扱われる
+- 基本ルール: 値をSQLの文字につなげず、必ず `?` に渡す
+
+### DBの導入と、画面からの戦績保存
+
+- 保存するデータは「1回ごとの履歴」(集計ではなく履歴を残すと、集計・連勝数などを後から計算できる)
+- SQLite は Node.js v24 に標準で入っている(`require('node:sqlite')`)。DB全体がファイル1つ(`server/janken.db`)
+- `server/db.js` で `CREATE TABLE IF NOT EXISTS games (...)` を実行(列: id / played_at / user_hand / pc_hand / result)
+- `server/index.js` に `POST /games` を追加。`played_at` はサーバー側で付ける(画面から送ると偽れるため)
+- 画面の `script.js` に `saveGameResult()` を追加し、`fetch` の POST で送る
+  - `method: "POST"`、`headers: {"Content-Type": "application/json"}`、`body: JSON.stringify({...})`
+- 保存する `result` は `勝ち` / `負け` / `引き分け` の3種類に統一(画面の表示文字とは別に持つ)
+- 確認: `cd server` → `node -e "const db=require('./db'); console.log(db.prepare('SELECT * FROM games ORDER BY id DESC LIMIT 5').all())"`
+
+### 躓いたところ
+
+- `node -e "..."` はターミナルのコマンド。Chromeのコンソールに入れると `Unexpected string` になる(`VM○○:1:9` のように `VM` が付くのはブラウザのコンソールで実行した印)
+- 相対パス `./db` は今いるフォルダ基準。`server` フォルダで実行する
+- `janken.db` は個人データ。`.gitignore` に `*.db` を書いて、Gitに入れない
+
+### 改善の余地
+
+- `resultForDB` は `let` で宣言し、各分岐の中で値を入れるのが安全
+- 動作確認で入ったテストデータ(200件前後)は、本物の戦績ではない

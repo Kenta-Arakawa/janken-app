@@ -6,6 +6,7 @@ let userWinCount = 0;
 let userLoseCount = 0;
 let userDrawCount = 0;
 let totalWinCount = Number(localStorage.getItem("userWinCount"));
+let resultForDB = "";
 document.getElementById("totalWins").textContent = totalWinCount;
 
 function playGame(str){
@@ -42,6 +43,14 @@ function judge(user, pc){
         userLoseCount++;
         document.getElementById("loseCount").textContent = userLoseCount;
     }
+    if (document.getElementById("result").textContent === "あなたの勝ち！") {
+        resultForDB = "勝ち";
+    } else if (document.getElementById("result").textContent === "あなたの負け！") {
+        resultForDB = "負け";
+    } else {
+        resultForDB = "引き分け";
+    }
+    saveGameResult(user, pc, resultForDB);
 }
 
 function resetGame() {
@@ -64,4 +73,13 @@ function resetTotalWins() {
         localStorage.setItem("userWinCount", totalWinCount);
         console.log("総勝利数をリセットしました。");
     }
+}
+
+
+function saveGameResult(user_hand, pc_hand, result) {
+    fetch("http://localhost:3000/games",{
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ user_hand: user_hand, pc_hand: pc_hand, result: result })
+    });
 }
