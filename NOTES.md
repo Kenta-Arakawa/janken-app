@@ -21,8 +21,9 @@
 | Step 4 | CSSで見た目を整える | 完了 |
 | Step 5 | 動作確認、コミット | 完了 |
 | Step 6 | GitHub公開(Pages) | 完了 |
-| Step 7 | (発展) 機能追加(勝敗カウント、リセット)、記録の保存(localStorage) | 完了 |
-| Step 8 | (発展) サーバーやDBの追加 | 進行中(Expressサーバー起動済) |
+| Step 7 | (発展) 機能追加、記録の保存(localStorage) | 完了 |
+| Step 8 | (発展) サーバーとDB(Express + SQLite)、画面との連携、エラー処理、URL切り替え | 手元で完了(feature/db) |
+| Step 9 | (発展) サーバーの公開 | 未着手(見送り) |
 
 ## 最終的なファイル構成
 
@@ -651,3 +652,43 @@ Invoke-RestMethod -Method Post -Uri http://localhost:3000/games -ContentType "ap
 - 三項演算子 `条件 ? 値A : 値B`: 条件が真ならA、偽ならB
 - `https://example.com` は仮の値。サーバー公開後に本物のURLへ置き換えてコミットする
 - 注意: 公開ページ(`master`)には、この変更はまだ入っていない(`feature/db` で作業中)
+
+---
+
+## 開発の終了時点の状態(2026-10)
+
+### 完成したもの
+
+- じゃんけんアプリ(HTML / CSS / JavaScript): 勝ち・負け・引き分けのカウント、リセット、累計の勝ち数(`localStorage`)
+- GitHub Pages で公開済み(`master` ブランチ): https://kenta-arakawa.github.io/janken-app/
+- サーバーとDB(`feature/db` ブランチ、手元のPCでのみ動作)
+  - Express + SQLite(`node:sqlite`)。`POST /games`(戦績の保存)、`GET /games`(最新10件の取得)
+  - 画面からの保存・取得・表示、サーバー停止時のエラー処理、送信先URLの切り替え(`location.hostname` で判定)
+
+### 未完了のこと
+
+- `feature/db` はまだ `master` に統合していない。公開ページは、サーバーなしのバージョンのまま
+- サーバーの公開は未実施。`script.js` の本番URLは仮の値(`https://example.com`)
+- 調べた結果: 無料のWebサービスではSQLiteのファイルが再起動で消える(Renderの無料枠は永続ディスクなし)。公開するなら次のどれかを選ぶ
+  - 無料で公開し、データ消失を許容する(学習用)
+  - 有料(月 $3〜7 前後)で永続ディスクを付ける
+  - DBを外部のサービス(PostgreSQLなど)へ移す(`db.js` とSQLの書き方の変更が必要)
+  - サーバーは公開せず、手元で完結させる
+  - 料金や条件は変わりやすいので、決める前に各公式ページで最新を確認する
+
+### 再開するときの手順
+
+1. `git switch feature/db`
+2. `cd server` → `node --watch index.js` でサーバーを起動(`npm install` が必要な場合あり。`node_modules` はGitに入っていない)
+3. `index.html` を開いて動作を確認
+4. サーバーを公開する場合は、上の「未完了のこと」から選び、`cors()` を公開ページのオリジン(`https://kenta-arakawa.github.io`)だけに絞る
+5. 公開できたら、`API_BASE_URL` の仮の値を本物のURLに置き換え、`feature/db` を `master` に統合する
+
+### 全体の学び
+
+- 開発環境: VSCode / Chrome / Git / Node.js / npm
+- フロントエンド: HTML・CSS・JavaScript、DOM操作、`fetch`、非同期(`.then` / `.catch`)
+- バックエンド: Express、ルーティング(GET / POST)、CORS、JSONの受け渡し
+- DB: SQLite、テーブル設計、`INSERT` / `SELECT`、`?` による SQL インジェクション対策
+- Git / GitHub: コミット、ブランチ、push、GitHub Pages、公開前のメールアドレスの扱い
+- 考え方: エラー文を読む、原因を切り分ける、変更の影響範囲を考える、公開の前に「何が公開されるか」を確認する
