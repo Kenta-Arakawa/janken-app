@@ -81,5 +81,24 @@ function saveGameResult(user_hand, pc_hand, result) {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ user_hand: user_hand, pc_hand: pc_hand, result: result })
+    })
+    .then(() => loadHistory());
+}
+
+function loadHistory(){
+    fetch("http://localhost:3000/games", {
+        method: "GET",
+        headers: {"Content-Type": "application/json"}
+    })
+    .then(response => response.json())
+    .then(games => {
+        const list = document.getElementById("historyList");
+        list.innerHTML = ""; // <ul>の中身を空にする
+        games.forEach(game => {
+            const li = document.createElement("li"); // 配列の中身をひとつひとつgameという名前で取り出して{}の中を繰り返す
+            li.textContent = `${new Date(game.played_at).toLocaleString("ja-JP")} - あなた: ${game.user_hand}, PC: ${game.pc_hand}, 結果: ${game.result}`;
+            list.appendChild(li);
+        });
     });
 }
+

@@ -512,3 +512,110 @@ body{
 
 - `resultForDB` は `let` で宣言し、各分岐の中で値を入れるのが安全
 - 動作確認で入ったテストデータ(200件前後)は、本物の戦績ではない
+
+### 戦績を取り出す窓口(GET /games)と、古いサーバーが残る問題
+
+- `GET /games`: `db.prepare('SELECT * FROM games ORDER BY id DESC LIMIT 10').all()` で新しい順に10件を取り、`res.json(...)` で返す。取り出しは `.all()`、書き込みは `.run()`
+- アドレスバー(Chromeの上の横長のURL欄)にURLを入れると、GETリクエストが送られる
+- Chrome devtools の `.well-known/appspecific/com.chrome.devtools.json` の警告は、アプリと無関係。無視してよい
+
+### 躓いたところ: コードを直したのに404になる
+
+- 原因: 古いサーバーが止まらずに残り、3000番ポートを使っていた。新しいサーバーは `EADDRINUSE`(使用中)で起動に失敗していた
+- 古いサーバーが残る主な理由: 起動したターミナルで `Ctrl + C` せず、別のターミナルに切り替えた
+- 確認方法
+  - `netstat -ano | findstr :3000`: ポートを使っているプロセスのPIDを調べる
+  - `taskkill /PID 番号 /F`: PIDを指定して強制終了する(番号を間違えないこと)
+- 予防: サーバー用のターミナルを1つに決める。別のコマンドは新しいタブで打つ。終了時は `Ctrl + C`
+- `node --watch index.js`: ファイルを保存するたびに自動で再起動する(古いプロセスが残っていると効果がない)
+
+---
+
+## 整理: server/index.js の読み方
+
+### 全体像
+
+`index.js` は「受付係」。ブラウザからの依頼を受けて、DBと話して、返事を返す。
+
+| ブロック | 役割 |
+|---|---|
+| 準備(`require`) | 道具を読み込む。`./` 付きは自作ファイル、なしは npm のライブラリ |
+| 共通の設定(`app.use`) | すべての依頼が窓口に着く前に通る処理。`cors()`、`express.json()`。窓口より**前**に書く |
+| 窓口の登録(`app.get` / `app.post`) | 「この住所に依頼が来たらこうする」 |
+| 待ち受け開始(`app.listen`) | 3000番ポートで受付を始める |
+
+### 窓口の読み方(3点で読む: 何を受け取り、何をして、何を返すか)
+
+| 窓口 | 受け取る | する | 返す |
+|---|---|---|---|
+| `GET /` | なし | なし | `Hello World!`(動作確認用) |
+| `POST /games` | `user_hand` / `pc_hand` / `result`(JSON) | `INSERT`(時刻はサーバーで作る) | 201 と保存した `id` |
+| `GET /games` | なし | `SELECT ... ORDER BY id DESC LIMIT 10` | 戦績10件(JSON) |
+
+- 同じ住所 `/games` でも、`get` と `post` は別の窓口
+- 「何を送るか」は、サーバーが `req.body` から何を取り出しているかを見れば分かる
+
+### `req` と `res`
+
+- `req`(request): 届いた依頼の情報。`req.body` は送られてきた中身
+- `res`(response): 返事を作る道具。`res.json(...)` / `res.send(...)` / `res.status(201)`
+- どちらも関数の引数名で、名前は自由。言語はJavaScript。`json` / `send` の機能そのものは Express が用意している
+- `res.json(配列)`: 配列をJSONの文字に変換し、「中身はJSONです」の札(`Content-Type: application/json`)を付けて送る
+- `res.send(配列)` も内部でJSONとして扱われるため、結果は同じ。JSONを返す意図なら `res.json` と書く
+- `res.send('文字')` は文字のまま(`text/html`)、`res.json('文字')` は前後に `"` が付く
+- 画面側の `res.json()`(`fetch` の中)は逆向きで、受け取ったJSONの文字を配列に戻す
+
+### 保存と取り出しのつながり
+
+- `id INTEGER PRIMARY KEY AUTOINCREMENT` により、追加のたびに自動で番号が増える
+- `INSERT` で追加された行は一番大きい `id` になる → `ORDER BY id DESC` で先頭に来る
+- 「保存」(POST)と「取り出し」(GET)は別の窓口だが、同じ `games` テーブルを使っている
+
+### 手で動かして確認したコマンド(PowerShell)
+
+```powershell
+# 取り出し(GET)
+Invoke-RestMethod http://localhost:3000/games | Format-Table
+
+# 保存(POST)
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/games -ContentType "application/json" -Body '{"user_hand":"グー","pc_hand":"チョキ","result":"勝ち"}'
+```
+
+- `Invoke-RestMethod` は JSON を自動で読み取り、全部届いてから処理する。自作の `process.stdin.on('data', ...)` は、データが分割されて届くと途中で `JSON.parse` して失敗する
+
+### 学んだこと(躓きの記録)
+
+- 出力が変わらない = 再起動の失敗、とは限らない(`res.send` と `res.json` は配列では同じ結果になる)
+- 実験でコードを書き換えたら、終わった後に必ず元に戻す
+- 質問の意図が分からないときは、そう伝える。意図の説明を受けると理解が深まる
+
+---
+
+## 戦績を画面に表示する(loadHistory)
+
+### やったこと
+
+1. `index.html` に `<h2>最近の戦績</h2>` と `<ul id="historyList"></ul>` を追加
+2. `script.js` に `loadHistory()` を作成
+   - `fetch(".../games")` → `.then(res => res.json())` で配列に戻す
+   - `list.innerHTML = ""` で `<ul>` を空にしてから、`games.forEach` で1件ずつ `<li>` を作り、`appendChild` で追加
+3. ページを開いたとき、`loadHistory()` を1回呼ぶ
+
+### 躓いたところと直し方
+
+- **リロードしないと戦績が更新されない**
+  - 原因: `loadHistory()` がページを開いたときの1回しか呼ばれていなかった
+  - 落とし穴: `saveGameResult()` の直後に `loadHistory()` を呼んでも、`fetch` は待たずに次へ進むため、保存前のデータを取ってしまう
+  - 直し方: `fetch(...).then(() => loadHistory())` で、保存の返事が届いてから取り直す
+- **時刻がUTCで表示される**
+  - 原因: サーバーが `new Date().toISOString()` で保存した、末尾が `Z` の世界共通時刻(UTC)をそのまま表示していた
+  - 方針: DBにはUTCのまま保存し、**表示するときに**見る人の時刻へ変換する
+  - 直し方: `new Date(game.played_at).toLocaleString("ja-JP")`。ブラウザのPCのタイムゾーンに合わせて表示される
+
+### 学んだこと
+
+- `fetch` は結果を待たずに次の行へ進む。順番が大事な処理は `.then(...)` でつなぐ
+- `.then(...)` は「前の結果が届いたら、次にこれをする」
+- 配列を1件ずつ処理するには `forEach`。画面の部品は `createElement` → `textContent` → `appendChild`
+- `${ ... }`(テンプレートリテラル)で、文字の中にJavaScriptの式の結果を埋め込める
+- 関数名の綴り(`loadHistry` と `loadHistory`)は、定義と呼び出しでそろえる
