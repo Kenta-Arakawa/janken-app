@@ -7,6 +7,7 @@ let userLoseCount = 0;
 let userDrawCount = 0;
 let totalWinCount = Number(localStorage.getItem("userWinCount"));
 let resultForDB = "";
+const API_BASE_URL = location.hostname === "" || location.hostname === "localhost" ? "http://localhost:3000" : "https://example.com"; // 本番環境のURLに置き換える
 document.getElementById("totalWins").textContent = totalWinCount;
 
 function playGame(str){
@@ -77,7 +78,7 @@ function resetTotalWins() {
 
 
 function saveGameResult(user_hand, pc_hand, result) {
-    fetch("http://localhost:3000/games",{
+    fetch(API_BASE_URL + "/games",{
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ user_hand: user_hand, pc_hand: pc_hand, result: result })
@@ -87,7 +88,7 @@ function saveGameResult(user_hand, pc_hand, result) {
 }
 
 function loadHistory(){
-    fetch("http://localhost:3000/games", {
+    fetch(API_BASE_URL + "/games", {
         method: "GET",
         headers: {"Content-Type": "application/json"}
     })

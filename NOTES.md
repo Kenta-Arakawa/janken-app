@@ -619,3 +619,35 @@ Invoke-RestMethod -Method Post -Uri http://localhost:3000/games -ContentType "ap
 - 配列を1件ずつ処理するには `forEach`。画面の部品は `createElement` → `textContent` → `appendChild`
 - `${ ... }`(テンプレートリテラル)で、文字の中にJavaScriptの式の結果を埋め込める
 - 関数名の綴り(`loadHistry` と `loadHistory`)は、定義と呼び出しでそろえる
+
+---
+
+## エラー処理と、送信先URLの切り替え
+
+### エラー処理
+
+- サーバーが止まっているときの観察
+  - じゃんけん自体は動く(サーバーなしで動く作りのため)
+  - 戦績の欄は空になる。コンソールに `ERR_CONNECTION_REFUSED`(接続を拒否された=待ち受けがない)と `Failed to fetch`(JavaScript側の報告)が出る
+  - 原因は「DBにアクセスできない」ではなく「サーバーに接続できない」
+- `fetch(...).then(...).catch(error => {...})`: 途中で失敗したときの処理
+  - 取得の失敗: コンソールに記録し、画面の戦績欄に「履歴の取得に失敗しました」と表示
+  - 保存の失敗: コンソールに記録のみ(保存は付随機能で、遊ぶことに影響しないため、利用者には出さない判断)
+- **関数は定義しただけでは動かない**。呼び出して初めて動く。ページを開いたときの `loadHistory();` が消えていて、取得失敗の表示も出なかった
+- `fetch` の `.catch` が動くのは通信そのものが失敗したときだけ。サーバーが404や500を返したときは成功扱いで `.then` が動く(必要になったときに扱う)
+
+### 送信先URLの切り替え
+
+- 目的: URLの直書き(2か所)をやめ、手元と公開ページで送信先を変える
+- 段階
+  1. `const API_BASE_URL = "http://localhost:3000";` に1か所へまとめ、`API_BASE_URL + "/games"` で使う(見た目や動きを変えずに書き方を整えること=リファクタリング)
+  2. `location.hostname` で場所を判定して切り替える
+     ```js
+     const API_BASE_URL = location.hostname === "" || location.hostname === "localhost"
+         ? "http://localhost:3000"
+         : "https://example.com"; // 本番URLに置き換える
+     ```
+- `location.hostname` の値: `file:///` で開く→`""`、手元のサーバー経由→`"localhost"`、公開ページ→`"kenta-arakawa.github.io"`
+- 三項演算子 `条件 ? 値A : 値B`: 条件が真ならA、偽ならB
+- `https://example.com` は仮の値。サーバー公開後に本物のURLへ置き換えてコミットする
+- 注意: 公開ページ(`master`)には、この変更はまだ入っていない(`feature/db` で作業中)
