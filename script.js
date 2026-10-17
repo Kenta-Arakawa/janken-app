@@ -82,7 +82,8 @@ function saveGameResult(user_hand, pc_hand, result) {
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ user_hand: user_hand, pc_hand: pc_hand, result: result })
     })
-    .then(() => loadHistory());
+    .then(() => loadHistory())
+    .catch(error => console.error("戦績の保存に失敗しました:", error));
 }
 
 function loadHistory(){
@@ -99,6 +100,11 @@ function loadHistory(){
             li.textContent = `${new Date(game.played_at).toLocaleString("ja-JP")} - あなた: ${game.user_hand}, PC: ${game.pc_hand}, 結果: ${game.result}`;
             list.appendChild(li);
         });
+    })
+    .catch(error => {
+        console.error("履歴の取得に失敗しました:", error);
+        document.getElementById("historyList").innerHTML = "<li>履歴の取得に失敗しました</li>";
     });
 }
 
+loadHistory(); // ページ読み込み時に履歴を表示する
